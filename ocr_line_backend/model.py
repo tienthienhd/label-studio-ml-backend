@@ -88,13 +88,17 @@ class OcrBackend(LabelStudioMLBase):
 
             response = requests.request("POST", url, headers=headers, data=payload, files=files)
             print(f"Call api status: {response.status_code}")
+
+
             model_results = response.json()
             words = []
-            for page in model_results['pages']:
-                for block in page['blocks']:
-                    for line in block['lines']:
-                        for word in line['words']:
-                            words.append(word)
+            # for page in model_results['pages']:
+            #     for block in page['blocks']:
+            #         for line in block['lines']:
+            #             for word in line['words']:
+            #                 words.append(word)
+            words = model_results['line']
+
             results = []
             all_scores = []
             img_width, img_height = get_image_size(image_path)
@@ -102,16 +106,11 @@ class OcrBackend(LabelStudioMLBase):
                 continue
             for word in words:
                 output_label = 'Text'
-                score = word['confidence']
-                if score < self.score_thresh:
-                    continue
-
+                x1, y1, x2, y2 = word
                 # convert the points array from image absolute dimensions to relative dimensions
-                x1, y1 = word['bbox'][0]
-                x2, y2 = word['bbox'][1]
                 x1, x2 = (x1 / img_width) * 100, (x2 / img_width) * 100
                 y1, y2 = (y1 / img_height) * 100, (y2 / img_height) * 100
-
+                score = 0.5
                 # must add one for the polygon
                 id_gen = str(random.randrange(10 ** 10))
                 results.append({
@@ -144,7 +143,7 @@ class OcrBackend(LabelStudioMLBase):
                         'height': y2 - y1,
                         'rotation': 0,
                         "text": [
-                            word['value']
+                            "Text"
                         ]
                     },
                     'id': id_gen,
