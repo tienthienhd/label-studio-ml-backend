@@ -1,4 +1,5 @@
 import logging
+import os
 import random
 from typing import List, Dict, Optional
 from urllib.parse import urlparse
@@ -11,9 +12,39 @@ from label_studio_ml.model import LabelStudioMLBase
 from label_studio_ml.utils import DATA_UNDEFINED_NAME, get_image_size
 
 logger = logging.getLogger(__name__)
+BASE_URL_DATA = 'http://172.16.100.204:8200'
+TOKEN = '2f5d2cd5a3531daddfc57fed47e18e18ed671e57'
 
+def get_image(image_path, output_path):
+    print(f'download image: {image_path}')
+    url = f'{BASE_URL_DATA}{image_path}'
+    headers = {
+        'authority': 'labelstudio.tcgroup.vn',
+        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+        'accept-language': 'en-US,en;q=0.9,vi-VN;q=0.8,vi;q=0.7',
+        'cache-control': 'no-cache',
+        'Authorization': f'Token {TOKEN}',
+        'pragma': 'no-cache',
+        'sec-ch-ua': '"Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+        'sec-fetch-dest': 'document',
+        'sec-fetch-mode': 'navigate',
+        'sec-fetch-site': 'none',
+        'sec-fetch-user': '?1',
+        'upgrade-insecure-requests': '1',
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
+    }
+    if os.path.exists(output_path):
+        return output_path
+    res = requests.get(url, headers=headers)
+    print(f'get image: {res.status_code} - {url}, save to {output_path}')
+    if res.status_code == 200:
+        with open(output_path, 'wb') as f:
+            f.write(res.content)
+    return output_path
 
-class OcrBackend(LabelStudioMLBase):
+class OcrLineBackend(LabelStudioMLBase):
     hostname = ""
     access_token = ""
 
@@ -66,11 +97,17 @@ class OcrBackend(LabelStudioMLBase):
         for i, task in enumerate(tasks):
             print(f"Task {i}: {task['id']}")
             image_url = self._get_image_url(task)
+
             if (image_url.startswith("http")):
                 image_path = self.get_local_path(image_url)
             else:
                 image_path = image_url
             print(image_path)
+            if not os.path.exists(image_path):
+                print(f'not found: {image_path}')
+                filename = os.path.basename(image_path)
+                image_file_path = f'data/{filename}'
+                image_path = get_image(image_path, image_file_path)
 
             url = "https://ocr-core-api.tcgroup.vn/api/v1/ocr/general_with_only_image_paddle"
 
@@ -87,7 +124,7 @@ class OcrBackend(LabelStudioMLBase):
             }
 
             response = requests.request("POST", url, headers=headers, data=payload, files=files)
-            print(f"Call api status: {response.status_code}")
+            print(f"Call api status: {response.status_code}: {response.text}")
 
 
             model_results = response.json()

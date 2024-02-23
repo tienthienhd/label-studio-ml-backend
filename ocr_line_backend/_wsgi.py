@@ -29,7 +29,7 @@ logging.config.dictConfig({
 })
 
 from label_studio_ml.api import init_app
-from model import OcrBackend
+from model import OcrLineBackend
 
 
 _DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
@@ -102,10 +102,10 @@ if __name__ == "__main__":
         kwargs.update(parse_kwargs())
 
     if args.check:
-        print('Check "' + OcrBackend.__name__ + '" instance creation..')
-        model = OcrBackend(**kwargs)
+        print('Check "' + OcrLineBackend.__name__ + '" instance creation..')
+        model = OcrLineBackend(**kwargs)
 
-    app = init_app(model_class=OcrBackend)
+    app = init_app(model_class=OcrLineBackend)
 
     app.run(host=args.host, port=args.port, debug=args.debug)
 
