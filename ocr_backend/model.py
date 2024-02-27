@@ -1,4 +1,5 @@
 import logging
+import os
 import random
 from typing import List, Dict, Optional
 from urllib.parse import urlparse
@@ -11,6 +12,8 @@ from label_studio_ml.model import LabelStudioMLBase
 from label_studio_ml.utils import DATA_UNDEFINED_NAME, get_image_size
 
 logger = logging.getLogger(__name__)
+API_TOKEN = os.environ.get('API_TOKEN',
+                           default='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjoxNzE2MTc4NDI0fQ.yvdqf6WapL_J79TnJw4dqTyM1STOVKC1gbqlM7bzAzU')
 
 
 class OcrBackend(LabelStudioMLBase):
@@ -83,7 +86,7 @@ class OcrBackend(LabelStudioMLBase):
             ]
             headers = {
                 'accept': 'application/json',
-                'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjoxNzA3Nzk1Mjc4fQ.Bv3MTdnBv6nfE517zLhNUjnnLyyqmp2V7pkIu0JMVy0'
+                'Authorization': f'Bearer {API_TOKEN}'
             }
 
             response = requests.request("POST", url, headers=headers, data=payload, files=files)
