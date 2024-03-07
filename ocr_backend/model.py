@@ -102,6 +102,10 @@ class OcrBackend(LabelStudioMLBase):
             all_scores = []
             img_width, img_height = get_image_size(image_path)
             if not words:
+                res.append({
+                    'result': [],
+                    'score': 0
+                })
                 continue
             for word in words:
                 output_label = 'Text'
