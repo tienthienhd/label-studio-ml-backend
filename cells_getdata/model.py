@@ -60,7 +60,7 @@ class CellsGetData(LabelStudioMLBase):
         # model_name = 'layout_ocr_yolov8n_v4.pt'
         model_path = f'/app/models/{model_name}'
         if not os.path.exists(model_path):
-            model_path = f"/Users/tienthien/workspace/tc_group/label-studio-ml-backend/layout_ocr_backend/models/{model_name}"
+            model_path = f"/Users/tienthien/workspace/tc_group/label-studio-ml-backend/cells_getdata/models/{model_name}"
         self.model = YOLO(model_path)
 
     def _get_image_url(self, task):
