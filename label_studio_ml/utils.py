@@ -7,6 +7,7 @@ from typing import List
 
 from label_studio_tools.core.utils.params import get_env
 from label_studio_tools.core.utils.io import get_local_path
+from label_studio_sdk.label_interface import LabelInterface
 
 DATA_UNDEFINED_NAME = '$undefined$'
 
@@ -22,7 +23,7 @@ def get_single_tag_keys(parsed_label_config, control_type, object_type):
     :param object_type: object tag str as it written in label config (e.g. 'Text')
     :return: 3 string keys and 1 array of string labels: (from_name, to_name, value, labels)
     """
-    assert len(parsed_label_config) == 1
+    assert len(parsed_label_config) == 1, "Please check your Labeling Interface configuration: At least one control tag should be in the labeling config."  # noqa
     from_name, info = list(parsed_label_config.items())[0]
     assert info['type'] == control_type, 'Label config has control tag "<' + info['type'] + '>" but "<' + control_type + '>" is expected for this model.'  # noqa
 
@@ -41,7 +42,7 @@ def get_first_tag_keys(parsed_label_config, control_type, object_type):
     :param control_type:
     :param object_type:
     :return:
-    """
+    """    
     for from_name, info in parsed_label_config.items():
         if info['type'] == control_type:
             for input in info['inputs']:
@@ -61,15 +62,23 @@ def get_choice(completion):
     return completion['annotations'][0]['result'][0]['value']['choices'][0]
 
 
-def get_image_local_path(url, image_cache_dir=None, project_dir=None, image_dir=None,
-                         label_studio_host=None, label_studio_access_token=None):
+def get_image_local_path(
+        url,
+        image_cache_dir=None,
+        project_dir=None,
+        image_dir=None,
+        label_studio_host=None, 
+        label_studio_access_token=None,
+        task_id=None
+):
     image_local_path = get_local_path(
         url=url,
         cache_dir=image_cache_dir,
         project_dir=project_dir,
         hostname=label_studio_host or get_env('HOSTNAME'),
         image_dir=image_dir,
-        access_token=label_studio_access_token
+        access_token=label_studio_access_token,
+        task_id=task_id
     )
     logger.debug(f'Image stored in the local path: {image_local_path}')
     return image_local_path
