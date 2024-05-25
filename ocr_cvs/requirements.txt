@@ -1,0 +1,3 @@
+requests
+Pillow
+boto3==1.29.0

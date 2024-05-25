@@ -3,8 +3,8 @@ version: "3.8"
 services:
   ml-backend:
     platform: linux/amd64
-    container_name: layout-ocr-backend
-    image: registry-dev.tcgroup.vn/lstdml_layout_ocr_backend
+    container_name: cells_getdata-backend
+    image: registry-dev.tcgroup.vn/cells_getdata_backend
     build: .
     environment:
       - MODEL_DIR=/data/models
