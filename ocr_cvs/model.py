@@ -64,7 +64,7 @@ class NewModel(LabelStudioMLBase):
         self.set("model_version", "0.0.1")
 
     def _get_image_url(self, task):
-        image_url = task['data'].get('image') or task['data'].get(DATA_UNDEFINED_NAME)
+        image_url = task['data'].get('ocr') or task['data'].get(DATA_UNDEFINED_NAME)
         print(image_url)
 
         if image_url.startswith('s3://'):
@@ -132,7 +132,7 @@ class NewModel(LabelStudioMLBase):
             img_width, img_height = get_image_size(image_path)
 
             response = requests.post(
-                "https://cloud.computervision.com.vn/api/v2/ocr/document/general?format_type=format_type&get_thumb=true",
+                "https://demo.computervision.com.vn/api/v2/ocr/document/general?format_type=file&get_thumb=true",
                 auth=(CVS_API_KEY, CVS_API_SECRET), files={'img': open(image_path, 'rb')})
 
             print(f"Call api status: {response.status_code}: ")
@@ -141,7 +141,7 @@ class NewModel(LabelStudioMLBase):
             error_code = res_dict.get("errorCode")
             error_message = res_dict.get("errorMessage")
             print(error_code, error_message)
-            data = res['data']
+            data = res_dict['data']
 
             page = data[0]
             image = page['image'].replace('\n', '')
