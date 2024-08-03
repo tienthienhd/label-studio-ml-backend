@@ -1,66 +1,27 @@
-import base64
 import logging
 import os
 import random
-from io import BytesIO
 from typing import List, Dict, Optional
 from urllib.parse import urlparse
 
 import boto3
 import requests
-from PIL import Image
 from botocore.exceptions import ClientError
 
 from label_studio_ml.model import LabelStudioMLBase
-from label_studio_ml.response import ModelResponse
 from label_studio_ml.utils import DATA_UNDEFINED_NAME, get_image_size
 
 logger = logging.getLogger(__name__)
-
-BASE_URL_DATA = 'http://172.16.100.204:8200'
-TOKEN = '2f5d2cd5a3531daddfc57fed47e18e18ed671e57'
 API_TOKEN = os.environ.get('API_TOKEN',
                            default='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0IiwiZXhwIjoxNzE2MTc4NDI0fQ.yvdqf6WapL_J79TnJw4dqTyM1STOVKC1gbqlM7bzAzU')
 
 
-def get_image(image_path, output_path):
-    print(f'download image: {image_path}')
-    url = f'{BASE_URL_DATA}{image_path}'
-    headers = {
-        'authority': 'labelstudio.tcgroup.vn',
-        'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
-        'accept-language': 'en-US,en;q=0.9,vi-VN;q=0.8,vi;q=0.7',
-        'cache-control': 'no-cache',
-        'Authorization': f'Token {TOKEN}',
-        'pragma': 'no-cache',
-        'sec-ch-ua': '"Google Chrome";v="119", "Chromium";v="119", "Not?A_Brand";v="24"',
-        'sec-ch-ua-mobile': '?0',
-        'sec-ch-ua-platform': '"macOS"',
-        'sec-fetch-dest': 'document',
-        'sec-fetch-mode': 'navigate',
-        'sec-fetch-site': 'none',
-        'sec-fetch-user': '?1',
-        'upgrade-insecure-requests': '1',
-        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
-    }
-    if os.path.exists(output_path):
-        return output_path
-    res = requests.get(url, headers=headers)
-    print(f'get image: {res.status_code} - {url}, save to {output_path}')
-    if res.status_code == 200:
-        with open(output_path, 'wb') as f:
-            f.write(res.content)
-    return output_path
+class OcrBackend(LabelStudioMLBase):
+    hostname = ""
+    access_token = ""
 
-
-class NewModel(LabelStudioMLBase):
-    """Custom ML Backend model
-    """
-
-    def setup(self):
-        """Configure any parameters of your model here
-        """
-        self.set("model_version", "0.0.1")
+    def __init__(self, project_id: Optional[str] = None):
+        super().__init__(project_id)
         self.score_thresh = 0.1
 
     def _get_image_url(self, task):
@@ -91,29 +52,18 @@ class NewModel(LabelStudioMLBase):
         print(image_url)
         return image_url
 
-    def get_image_size_from_base64(self, image):
-        im = Image.open(BytesIO(base64.b64decode(image)))
-        return im.size
-
-    def predict(self, tasks: List[Dict], context: Optional[Dict] = None, **kwargs) -> ModelResponse:
+    def predict(self, tasks: List[Dict], context: Optional[Dict] = None, **kwargs) -> List[Dict]:
         """ Write your inference logic here
             :param tasks: [Label Studio tasks in JSON format](https://labelstud.io/guide/task_format.html)
-            :param context: [Label Studio context in JSON format](https://labelstud.io/guide/ml_create#Implement-prediction-logic)
-            :return model_response
-                ModelResponse(predictions=predictions) with
-                predictions: [Predictions array in JSON format](https://labelstud.io/guide/export.html#Label-Studio-JSON-format-of-annotated-tasks)
+            :param context: [Label Studio context in JSON format](https://labelstud.io/guide/ml.html#Passing-data-to-ML-backend)
+            :return predictions: [Predictions array in JSON format](https://labelstud.io/guide/export.html#Raw-JSON-format-of-completed-tasks)
         """
         print(f'''\
         Run prediction on {tasks}
         Received context: {context}
         Project ID: {self.project_id}
         Label config: {self.label_config}
-        Parsed JSON Label config: {self.parsed_label_config}
-        Extra params: {self.extra_params}''')
-
-        # example for resource downloading from Label Studio instance,
-        # you need to set env vars LABEL_STUDIO_URL and LABEL_STUDIO_API_KEY
-        # path = self.get_local_path(tasks[0]['data']['image_url'], task_id=tasks[0]['id'])
+        Parsed JSON Label config: {self.parsed_label_config}''')
 
         res = []
         for i, task in enumerate(tasks):
@@ -123,13 +73,7 @@ class NewModel(LabelStudioMLBase):
                 image_path = self.get_local_path(image_url)
             else:
                 image_path = image_url
-            if not os.path.exists(image_path):
-                print(f'not found: {image_path}')
-                filename = os.path.basename(image_path)
-                image_file_path = f'data/{filename}'
-                image_path = get_image(image_path, image_file_path)
             print(image_path)
-            img_width, img_height = get_image_size(image_path)
 
             url = "http://172.16.100.201:18000/api/v1/ocr/general_with_only_image"
 
@@ -154,19 +98,17 @@ class NewModel(LabelStudioMLBase):
                     for line in block['lines']:
                         for word in line['words']:
                             words.append(word)
-
+            results = []
+            all_scores = []
+            img_width, img_height = get_image_size(image_path)
             if not words:
                 res.append({
                     'result': [],
                     'score': 0
                 })
                 continue
-
-            results = []
-            all_scores = []
-            output_label = 'Text'
-
             for word in words:
+                output_label = 'Text'
                 score = word['confidence']
                 if score < self.score_thresh:
                     continue
@@ -248,8 +190,8 @@ class NewModel(LabelStudioMLBase):
                 'result': results,
                 'score': avg_score
             })
-
-        return ModelResponse(predictions=res)
+        print(res)
+        return res
 
     def fit(self, event, data, **kwargs):
         """
