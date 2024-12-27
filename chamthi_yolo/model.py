@@ -13,7 +13,7 @@ from label_studio_ml.model import LabelStudioMLBase
 from label_studio_ml.response import ModelResponse
 from label_studio_ml.utils import DATA_UNDEFINED_NAME, get_image_size
 
-model_name = os.environ.get("MODEL_NAME", 'chamthi.pt')
+model_name = os.environ.get("MODEL_NAME", 'Yolov8s-p2.pt')
 
 logger = logging.getLogger(__name__)
 
